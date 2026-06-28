@@ -2,397 +2,260 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>PDF Shelf — multi-PDF viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+<meta name="theme-color" content="#161311" />
+<meta name="description" content="PDF Shelf — Premium multi-PDF reader. Open, read, and manage multiple PDFs beautifully." />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="PDF Shelf" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>PDF Shelf</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<style>
-  :root{
-    --bg: #1B1814;
-    --surface: #25201A;
-    --surface-raised: #322B22;
-    --border: #423A2E;
-    --text: #F3ECDE;
-    --text-muted: #A8998340;
-    --text-muted-solid: #B5A48C;
-    --accent: #F0AC3B;      /* highlighter amber */
-    --accent-ink: #1B1814;
-    --accent-2: #5C8E87;    /* muted teal */
-    --danger: #D2674C;
-  }
-
-  *{ box-sizing: border-box; }
-  html, body{ margin:0; padding:0; height:100%; background: transparent; }
-  body{
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--text);
-    display:flex;
-    flex-direction:column;
-    height: 100vh;
-    overflow: hidden;
-    background: var(--bg);
-  }
-
-  .app{
-    display:flex;
-    flex-direction:column;
-    height:100%;
-    max-width: 720px;
-    margin: 0 auto;
-    width:100%;
-    background: var(--bg);
-  }
-
-  /* Header */
-  header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding: 14px 16px 10px;
-    flex-shrink:0;
-  }
-  header h1{
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: 0.2px;
-  }
-  header .count{
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 0.72rem;
-    color: var(--text-muted-solid);
-    margin-left: 8px;
-  }
-  .add-btn{
-    background: var(--accent);
-    color: var(--accent-ink);
-    border: none;
-    border-radius: 10px;
-    padding: 9px 16px;
-    font-size: 0.88rem;
-    font-weight: 700;
-    display:flex;
-    align-items:center;
-    gap: 6px;
-    cursor:pointer;
-  }
-  .add-btn:active{ transform: scale(0.97); }
-  .add-btn:focus-visible{ outline: 2px solid var(--accent-2); outline-offset: 2px; }
-
-  /* Tab strip — folder-tab signature */
-  .tabstrip{
-    display:flex;
-    gap: 2px;
-    overflow-x: auto;
-    padding: 0 10px;
-    flex-shrink:0;
-    scrollbar-width: none;
-  }
-  .tabstrip::-webkit-scrollbar{ display:none; }
-  .tab{
-    position: relative;
-    flex-shrink: 0;
-    max-width: 160px;
-    display:flex;
-    align-items:center;
-    gap: 6px;
-    padding: 9px 10px 9px 12px;
-    background: var(--surface);
-    color: var(--text-muted-solid);
-    border: 1px solid var(--border);
-    border-bottom: none;
-    clip-path: polygon(0 0, 88% 0, 100% 100%, 0 100%);
-    margin-right: -8px;
-    cursor: pointer;
-    font-size: 0.78rem;
-    white-space: nowrap;
-  }
-  .tab span.name{ overflow:hidden; text-overflow: ellipsis; max-width: 100px; }
-  .tab.active{
-    background: var(--surface-raised);
-    color: var(--text);
-    z-index: 2;
-    border-color: var(--accent);
-  }
-  .tab .close{
-    background:none; border:none; color:inherit; font-size: 0.9rem;
-    line-height:1; cursor:pointer; opacity:0.6; padding: 0 2px;
-  }
-  .tab .close:hover{ opacity:1; color: var(--danger); }
-
-  /* Viewer */
-  .viewer-wrap{
-    flex: 1;
-    overflow: auto;
-    background: #0F0D0B;
-    display:flex;
-    align-items:flex-start;
-    justify-content:center;
-    padding: 14px 0 90px;
-    touch-action: pan-y;
-  }
-  .viewer-wrap canvas{
-    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
-    background: white;
-    max-width: 100%;
-  }
-
-  .empty{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    padding: 0 32px;
-    color: var(--text-muted-solid);
-    gap: 14px;
-  }
-  .empty .icon{ font-size: 2.6rem; opacity: 0.5; }
-  .empty h2{ font-family: Georgia, serif; font-size: 1.1rem; color: var(--text); margin:0; }
-  .empty p{ font-size: 0.85rem; line-height:1.5; margin:0; max-width: 280px; }
-  .empty .add-btn{ margin-top: 6px; }
-
-  /* Bottom toolbar */
-  .toolbar{
-    position: fixed;
-    bottom: 0; left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 720px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    gap: 10px;
-  }
-  .toolbar.hidden{ display:none; }
-  .toolbar button{
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    color: var(--text);
-    width: 38px; height: 38px;
-    border-radius: 9px;
-    font-size: 1rem;
-    cursor:pointer;
-  }
-  .toolbar button:disabled{ opacity: 0.35; }
-  .toolbar button:focus-visible{ outline: 2px solid var(--accent-2); }
-  .pagegroup, .zoomgroup{ display:flex; align-items:center; gap: 8px; }
-  .pageinfo{
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 0.8rem;
-    color: var(--text-muted-solid);
-    min-width: 64px;
-    text-align:center;
-  }
-  .zoomlabel{
-    font-family: ui-monospace, monospace;
-    font-size: 0.75rem;
-    color: var(--text-muted-solid);
-    min-width: 38px;
-    text-align:center;
-  }
-
-  .hint{
-    text-align:center;
-    font-size: 0.7rem;
-    color: var(--text-muted-solid);
-    padding: 6px 0 0;
-    opacity: 0.7;
-  }
-
-  input[type=file]{ display:none; }
-</style>
+<link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div class="app">
-  <header>
-    <div>
-      <h1>PDF Shelf<span class="count" id="countLabel"></span></h1>
+
+<!-- Splash Screen -->
+<div id="splash" class="splash">
+  <div class="splash-inner">
+    <div class="splash-logo">
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="14" width="10" height="44" rx="2" fill="#5C8E87"/>
+        <rect x="21" y="10" width="10" height="48" rx="2" fill="#B8A88F"/>
+        <rect x="34" y="6" width="10" height="52" rx="2" fill="#F0AC3B"/>
+        <rect x="47" y="12" width="10" height="46" rx="2" fill="#B8A88F"/>
+        <rect x="5" y="58" width="62" height="4" rx="2" fill="#40362A"/>
+        <rect x="30" y="22" width="22" height="28" rx="3" fill="#221D18" stroke="#F0AC3B" stroke-width="1.5"/>
+        <text x="33" y="38" font-family="Arial" font-weight="bold" font-size="9" fill="#F0AC3B">PDF</text>
+      </svg>
     </div>
-    <button class="add-btn" id="addBtnTop">＋ Add PDFs</button>
-  </header>
-
-  <div class="tabstrip" id="tabstrip"></div>
-
-  <div class="viewer-wrap" id="viewerWrap">
-    <div class="empty" id="emptyState">
-      <div class="icon">📂</div>
-      <h2>No PDFs open yet</h2>
-      <p>Pick your course outlines, schedules, or any PDFs from your phone — open as many as you want, side by side.</p>
-      <button class="add-btn" id="addBtnEmpty">＋ Add PDFs</button>
+    <h1 class="splash-title">PDF Shelf</h1>
+    <p class="splash-sub">Your premium PDF reader</p>
+    <div class="splash-loader">
+      <div class="splash-bar"></div>
     </div>
   </div>
-
-  <div class="toolbar hidden" id="toolbar">
-    <div class="pagegroup">
-      <button id="prevBtn" aria-label="Previous page">‹</button>
-      <span class="pageinfo" id="pageInfo">– / –</span>
-      <button id="nextBtn" aria-label="Next page">›</button>
-    </div>
-    <div class="zoomgroup">
-      <button id="zoomOut" aria-label="Zoom out">−</button>
-      <span class="zoomlabel" id="zoomLabel">100%</span>
-      <button id="zoomIn" aria-label="Zoom in">+</button>
-    </div>
-  </div>
-  <div class="hint" id="swipeHint" style="display:none;">swipe left or right to flip pages</div>
 </div>
 
-<input type="file" id="fileInput" accept="application/pdf" multiple />
+<!-- Install Banner -->
+<div id="installBanner" class="install-banner hidden">
+  <div class="install-banner-inner">
+    <div class="install-icon">
+      <svg width="28" height="28" viewBox="0 0 72 72" fill="none">
+        <rect x="8" y="14" width="10" height="44" rx="2" fill="#5C8E87"/>
+        <rect x="21" y="10" width="10" height="48" rx="2" fill="#B8A88F"/>
+        <rect x="34" y="6" width="10" height="52" rx="2" fill="#F0AC3B"/>
+        <rect x="47" y="12" width="10" height="46" rx="2" fill="#B8A88F"/>
+        <rect x="5" y="58" width="62" height="4" rx="2" fill="#40362A"/>
+      </svg>
+    </div>
+    <div class="install-text">
+      <strong>Install PDF Shelf</strong>
+      <span>Works offline · No browser chrome</span>
+    </div>
+    <button id="installBtn" class="install-btn">Install</button>
+    <button id="installDismiss" class="install-dismiss" aria-label="Dismiss">×</button>
+  </div>
+</div>
 
-<script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+<!-- Drag & Drop Overlay -->
+<div id="dropOverlay" class="drop-overlay hidden">
+  <div class="drop-overlay-inner">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14,2 14,8 20,8"/>
+      <line x1="12" y1="12" x2="12" y2="18"/>
+      <polyline points="9,15 12,18 15,15"/>
+    </svg>
+    <p>Drop PDFs to open</p>
+  </div>
+</div>
 
-const fileInput = document.getElementById('fileInput');
-const tabstrip = document.getElementById('tabstrip');
-const viewerWrap = document.getElementById('viewerWrap');
-const emptyState = document.getElementById('emptyState');
-const toolbar = document.getElementById('toolbar');
-const pageInfo = document.getElementById('pageInfo');
-const zoomLabel = document.getElementById('zoomLabel');
-const countLabel = document.getElementById('countLabel');
-const swipeHint = document.getElementById('swipeHint');
+<div class="app" id="app">
 
-let docs = [];       // { id, name, pdf, numPages, page, scale, canvas }
-let activeId = null;
-let seenFirstDoc = false;
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="header-left">
+      <div class="logo" aria-label="PDF Shelf">
+        <svg width="28" height="28" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="14" width="10" height="44" rx="2" fill="#5C8E87"/>
+          <rect x="21" y="10" width="10" height="48" rx="2" fill="#B8A88F"/>
+          <rect x="34" y="6" width="10" height="52" rx="2" fill="#F0AC3B"/>
+          <rect x="47" y="12" width="10" height="46" rx="2" fill="#B8A88F"/>
+          <rect x="5" y="58" width="62" height="4" rx="2" fill="#40362A"/>
+          <rect x="30" y="22" width="22" height="28" rx="3" fill="#221D18" stroke="#F0AC3B" stroke-width="1.5"/>
+          <text x="33" y="38" font-family="Arial" font-weight="bold" font-size="9" fill="#F0AC3B">PDF</text>
+        </svg>
+      </div>
+      <div class="header-title-group">
+        <h1 class="header-title">PDF Shelf</h1>
+        <span class="header-count" id="countLabel"></span>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="header-btn" id="settingsBtn" aria-label="Settings" title="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <button class="add-btn" id="addBtnTop">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add PDFs
+      </button>
+    </div>
+  </header>
 
-document.getElementById('addBtnTop').onclick = () => fileInput.click();
-document.getElementById('addBtnEmpty').onclick = () => fileInput.click();
+  <!-- Tab Strip -->
+  <div class="tabstrip" id="tabstrip" role="tablist" aria-label="Open PDFs"></div>
 
-fileInput.addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files || []);
-  for (const file of files){
-    await openFile(file);
-  }
-  fileInput.value = '';
-});
+  <!-- Main Content -->
+  <main class="main" id="main">
 
-async function openFile(file){
-  const id = 'd' + Date.now() + Math.random().toString(36).slice(2,7);
-  try{
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const entry = { id, name: file.name.replace(/\.pdf$/i,''), pdf, numPages: pdf.numPages, page: 1, scale: 1.0 };
-    docs.push(entry);
-    renderTabs();
-    setActive(id);
-    if (!seenFirstDoc){ seenFirstDoc = true; swipeHint.style.display = 'block'; setTimeout(()=> swipeHint.style.display='none', 4000); }
-  }catch(err){
-    alert('Could not open "' + file.name + '". It may not be a valid PDF.');
-  }
-}
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-illustration">
+        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="25" width="18" height="72" rx="4" fill="#2D261F"/>
+          <rect x="36" y="18" width="18" height="79" rx="4" fill="#2D261F"/>
+          <rect x="57" y="12" width="18" height="85" rx="4" fill="#2D261F"/>
+          <rect x="78" y="20" width="18" height="77" rx="4" fill="#2D261F"/>
+          <rect x="10" y="97" width="100" height="6" rx="3" fill="#40362A"/>
+          <rect x="50" y="35" width="38" height="48" rx="5" fill="#221D18" stroke="#F0AC3B" stroke-width="2"/>
+          <rect x="57" y="44" width="24" height="3" rx="1.5" fill="#F0AC3B" opacity="0.6"/>
+          <rect x="57" y="51" width="18" height="3" rx="1.5" fill="#B8A88F" opacity="0.4"/>
+          <rect x="57" y="58" width="22" height="3" rx="1.5" fill="#B8A88F" opacity="0.4"/>
+          <rect x="57" y="65" width="15" height="3" rx="1.5" fill="#B8A88F" opacity="0.3"/>
+          <circle cx="88" cy="35" r="14" fill="#221D18" stroke="#5C8E87" stroke-width="2"/>
+          <line x1="84" y1="35" x2="92" y2="35" stroke="#5C8E87" stroke-width="2" stroke-linecap="round"/>
+          <line x1="88" y1="31" x2="88" y2="39" stroke="#5C8E87" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="empty-title">Your shelf is empty</h2>
+      <p class="empty-desc">Open PDF files from your device to start reading. You can have multiple PDFs open at once in separate tabs.</p>
+      <button class="add-btn add-btn-large" id="addBtnEmpty">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Open PDFs
+      </button>
+      <div class="empty-drop-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17,8 12,3 7,8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        or drag & drop PDF files here
+      </div>
+      <div class="empty-shortcuts">
+        <span class="shortcut-hint"><kbd>Ctrl</kbd><kbd>O</kbd> Open</span>
+        <span class="shortcut-hint"><kbd>←</kbd><kbd>→</kbd> Pages</span>
+        <span class="shortcut-hint"><kbd>Ctrl</kbd><kbd>+</kbd> Zoom</span>
+      </div>
+    </div>
 
-function renderTabs(){
-  tabstrip.innerHTML = '';
-  docs.forEach(d => {
-    const tab = document.createElement('div');
-    tab.className = 'tab' + (d.id === activeId ? ' active' : '');
-    tab.innerHTML = `<span class="name">${escapeHtml(d.name)}</span><button class="close" aria-label="Close">×</button>`;
-    tab.addEventListener('click', (ev) => {
-      if (ev.target.classList.contains('close')) return;
-      setActive(d.id);
-    });
-    tab.querySelector('.close').addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      closeDoc(d.id);
-    });
-    tabstrip.appendChild(tab);
-  });
-  countLabel.textContent = docs.length ? ' · ' + docs.length + ' open' : '';
-}
+    <!-- Viewer -->
+    <div class="viewer-wrap" id="viewerWrap" role="region" aria-label="PDF Viewer" style="display:none;">
+      <canvas id="pdfCanvas" aria-label="PDF Page"></canvas>
+    </div>
 
-function closeDoc(id){
-  const idx = docs.findIndex(d => d.id === id);
-  if (idx === -1) return;
-  try{ docs[idx].pdf.destroy(); }catch(e){}
-  docs.splice(idx, 1);
-  if (activeId === id){
-    activeId = docs.length ? docs[Math.max(0, idx-1)].id : null;
-  }
-  renderTabs();
-  if (activeId){ renderPage(); } else { showEmpty(); }
-}
+  </main>
 
-function showEmpty(){
-  viewerWrap.innerHTML = '';
-  viewerWrap.appendChild(emptyState);
-  toolbar.classList.add('hidden');
-}
+  <!-- Floating Toolbar -->
+  <div class="toolbar" id="toolbar" aria-label="PDF Controls" style="display:none;">
+    <div class="toolbar-inner">
+      <div class="toolbar-group">
+        <button class="toolbar-btn" id="prevBtn" aria-label="Previous page" title="Previous page (←)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+        </button>
+        <div class="page-info-wrap">
+          <span class="page-info" id="pageInfo" aria-live="polite">1 / 1</span>
+        </div>
+        <button class="toolbar-btn" id="nextBtn" aria-label="Next page" title="Next page (→)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9,18 15,12 9,6"/>
+          </svg>
+        </button>
+      </div>
 
-async function setActive(id){
-  activeId = id;
-  renderTabs();
-  toolbar.classList.remove('hidden');
-  await renderPage();
-}
+      <div class="toolbar-divider"></div>
 
-function currentDoc(){ return docs.find(d => d.id === activeId); }
+      <div class="toolbar-group">
+        <button class="toolbar-btn" id="zoomOut" aria-label="Zoom out" title="Zoom out (Ctrl+-)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </button>
+        <span class="zoom-label" id="zoomLabel" aria-live="polite">100%</span>
+        <button class="toolbar-btn" id="zoomIn" aria-label="Zoom in" title="Zoom in (Ctrl++)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <line x1="11" y1="8" x2="11" y2="14"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </button>
+      </div>
 
-async function renderPage(){
-  const entry = currentDoc();
-  if (!entry) return;
-  viewerWrap.innerHTML = '';
-  const canvas = document.createElement('canvas');
-  viewerWrap.appendChild(canvas);
+      <div class="toolbar-divider"></div>
 
-  const page = await entry.pdf.getPage(entry.page);
-  const dpr = window.devicePixelRatio || 1;
-  const viewport = page.getViewport({ scale: entry.scale * 1.4 });
-  canvas.width = viewport.width * dpr;
-  canvas.height = viewport.height * dpr;
-  canvas.style.width = viewport.width + 'px';
-  canvas.style.height = viewport.height + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  await page.render({ canvasContext: ctx, viewport }).promise;
+      <button class="toolbar-btn" id="resetZoom" aria-label="Reset zoom" title="Reset zoom (Ctrl+0)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
-  pageInfo.textContent = entry.page + ' / ' + entry.numPages;
-  zoomLabel.textContent = Math.round(entry.scale * 100) + '%';
-  document.getElementById('prevBtn').disabled = entry.page <= 1;
-  document.getElementById('nextBtn').disabled = entry.page >= entry.numPages;
-}
+</div>
 
-document.getElementById('prevBtn').onclick = () => changePage(-1);
-document.getElementById('nextBtn').onclick = () => changePage(1);
-document.getElementById('zoomIn').onclick = () => changeZoom(0.15);
-document.getElementById('zoomOut').onclick = () => changeZoom(-0.15);
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" id="settingsClose" aria-label="Close settings">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <h3>Keyboard Shortcuts</h3>
+        <div class="shortcut-list">
+          <div class="shortcut-row"><span>Open PDF</span><span><kbd>Ctrl</kbd><kbd>O</kbd></span></div>
+          <div class="shortcut-row"><span>Next Page</span><span><kbd>→</kbd> or <kbd>Space</kbd></span></div>
+          <div class="shortcut-row"><span>Prev Page</span><span><kbd>←</kbd> or <kbd>Shift+Space</kbd></span></div>
+          <div class="shortcut-row"><span>Zoom In</span><span><kbd>Ctrl</kbd><kbd>+</kbd></span></div>
+          <div class="shortcut-row"><span>Zoom Out</span><span><kbd>Ctrl</kbd><kbd>-</kbd></span></div>
+          <div class="shortcut-row"><span>Reset Zoom</span><span><kbd>Ctrl</kbd><kbd>0</kbd></span></div>
+          <div class="shortcut-row"><span>Close PDF</span><span><kbd>Delete</kbd></span></div>
+          <div class="shortcut-row"><span>Close Dialog</span><span><kbd>Esc</kbd></span></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>About</h3>
+        <p class="settings-about">PDF Shelf v2.0 — A premium multi-PDF reader that works entirely in your browser. No files leave your device.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
-function changePage(delta){
-  const entry = currentDoc();
-  if (!entry) return;
-  const next = entry.page + delta;
-  if (next < 1 || next > entry.numPages) return;
-  entry.page = next;
-  renderPage();
-}
+<!-- Toast -->
+<div id="toast" class="toast" aria-live="polite"></div>
 
-function changeZoom(delta){
-  const entry = currentDoc();
-  if (!entry) return;
-  entry.scale = Math.min(2.5, Math.max(0.5, +(entry.scale + delta).toFixed(2)));
-  renderPage();
-}
+<input type="file" id="fileInput" accept="application/pdf" multiple aria-hidden="true" />
 
-// Swipe to flip pages
-let touchStartX = null;
-viewerWrap.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
-viewerWrap.addEventListener('touchend', (e) => {
-  if (touchStartX === null) return;
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  if (Math.abs(dx) > 60){
-    changePage(dx < 0 ? 1 : -1);
-  }
-  touchStartX = null;
-});
-
-function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-</script>
+<script src="app.js"></script>
 </body>
 </html>

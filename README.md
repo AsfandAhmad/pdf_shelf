@@ -1,111 +1,73 @@
-# 📚 PDF Shelf
+# PDF Shelf
 
-A lightweight, browser-based multi-PDF viewer built with **HTML, CSS, JavaScript, and PDF.js**. Open multiple PDF files at once, switch between them using folder-style tabs, and read documents with an intuitive, mobile-friendly interface.
+A premium installable Progressive Web App for reading multiple PDFs beautifully.
 
-## ✨ Features
+## Features
 
-- 📂 Open multiple PDF files simultaneously
-- 📑 Folder-style tabs for quick document switching
-- 📄 Previous/Next page navigation
-- 🔍 Zoom in and zoom out
-- 📱 Mobile-friendly responsive design
-- 👆 Swipe left/right to change pages on touch devices
-- ❌ Close individual PDF tabs
-- 🎨 Clean bookshelf-inspired UI
-- ⚡ Runs entirely in the browser (no backend required)
+- **Multi-tab PDF reading** — open as many PDFs as you want simultaneously
+- **Folder-style tabs** — elegant tab UI with close animations
+- **Swipe navigation** — swipe left/right to flip pages on touch devices
+- **Pinch to zoom** — native pinch zoom gesture support
+- **Drag & drop** — drop PDF files directly into the app
+- **Keyboard shortcuts** — full keyboard control (see Settings)
+- **Offline support** — works without internet once installed
+- **Installable PWA** — install on Windows, macOS, Android, iOS, Linux
+- **No backend** — everything runs locally, no files leave your device
+- **Local storage** — remembers your page position and zoom level
 
----
+## Keyboard Shortcuts
 
-## 🖼️ Preview
+| Action | Shortcut |
+|--------|----------|
+| Open PDF | `Ctrl/Cmd + O` |
+| Next page | `→` or `Space` |
+| Previous page | `←` or `Shift+Space` |
+| Zoom in | `Ctrl/Cmd + +` |
+| Zoom out | `Ctrl/Cmd + -` |
+| Reset zoom | `Ctrl/Cmd + 0` |
+| Close PDF | `Shift + Delete` |
+| Close dialog | `Escape` |
 
-The application provides:
+## Deploy
 
-- Multiple open PDF tabs
-- Responsive PDF rendering
-- Simple navigation controls
-- Zoom controls
-- Touch gesture support
+Static files only — deploy to any host:
 
----
+- **Vercel**: `vercel deploy`
+- **Netlify**: drag the folder into Netlify dashboard
+- **GitHub Pages**: push to a repo, enable Pages in Settings
 
-## 🛠️ Technologies Used
-
-- HTML5
-- CSS3
-- JavaScript (ES6)
-- PDF.js
-
----
-
-## 📁 Project Structure
+## File Structure
 
 ```
 pdf_shelf/
-│
-├── pdf-multi-viewer.html
+├── index.html          # App shell + HTML
+├── styles.css          # All styles
+├── app.js              # All JavaScript logic
+├── manifest.json       # PWA manifest
+├── service-worker.js   # Offline caching
+├── favicon.svg         # SVG icon
+├── apple-touch-icon.png
+├── icons/
+│   ├── icon-192.png
+│   ├── icon-512.png
+│   ├── maskable-192.png
+│   └── maskable-512.png
 └── README.md
 ```
 
----
+## Tech Stack
 
-## 🚀 Getting Started
+- Vanilla HTML/CSS/JS (ES6+)
+- [PDF.js](https://mozilla.github.io/pdf.js/) for PDF rendering
+- Service Worker for offline support
+- Web App Manifest for PWA install
+- Inter font from Google Fonts
 
-### Clone the repository
+## Design
 
-```bash
-git clone https://github.com/AsfandAhmad/pdf_shelf.git
-```
+Inspired by Apple Books, Adobe Acrobat, and Arc Browser. Uses a warm bookshelf color palette:
 
-### Open the project
-
-Simply open
-
-```
-pdf-multi-viewer.html
-```
-
-in your web browser.
-
-No installation or build process is required.
-
----
-
-## 📖 How to Use
-
-1. Click **Add PDFs**.
-2. Select one or more PDF files.
-3. Switch between documents using the folder tabs.
-4. Use:
-   - ◀ Previous Page
-   - ▶ Next Page
-   - ➕ Zoom In
-   - ➖ Zoom Out
-5. Swipe left or right on touch devices to change pages.
-6. Close documents using the **×** button on each tab.
-
----
-
-## 🎯 Future Improvements
-
-- Search inside PDFs
-- Bookmark pages
-- Dark/Light theme toggle
-- Thumbnail sidebar
-- Recent documents
-- Drag-and-drop support
-- Keyboard shortcuts
-- Remember last opened page
-
----
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
----
-
-## 👤 Author
-
-**Asfand Ahmad**
-
-GitHub: https://github.com/AsfandAhmad
+- Background: `#161311`
+- Surface: `#221D18`
+- Accent Gold: `#F0AC3B`
+- Accent Teal: `#5C8E87`
