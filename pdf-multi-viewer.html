@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>PDF Shelf — multi-PDF viewer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --bg: #1B1814;
+    --surface: #25201A;
+    --surface-raised: #322B22;
+    --border: #423A2E;
+    --text: #F3ECDE;
+    --text-muted: #A8998340;
+    --text-muted-solid: #B5A48C;
+    --accent: #F0AC3B;      /* highlighter amber */
+    --accent-ink: #1B1814;
+    --accent-2: #5C8E87;    /* muted teal */
+    --danger: #D2674C;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; height:100%; background: transparent; }
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    display:flex;
+    flex-direction:column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .app{
+    display:flex;
+    flex-direction:column;
+    height:100%;
+    max-width: 720px;
+    margin: 0 auto;
+    width:100%;
+    background: var(--bg);
+  }
+
+  /* Header */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 14px 16px 10px;
+    flex-shrink:0;
+  }
+  header h1{
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+  header .count{
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted-solid);
+    margin-left: 8px;
+  }
+  .add-btn{
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    cursor:pointer;
+  }
+  .add-btn:active{ transform: scale(0.97); }
+  .add-btn:focus-visible{ outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+  /* Tab strip — folder-tab signature */
+  .tabstrip{
+    display:flex;
+    gap: 2px;
+    overflow-x: auto;
+    padding: 0 10px;
+    flex-shrink:0;
+    scrollbar-width: none;
+  }
+  .tabstrip::-webkit-scrollbar{ display:none; }
+  .tab{
+    position: relative;
+    flex-shrink: 0;
+    max-width: 160px;
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    padding: 9px 10px 9px 12px;
+    background: var(--surface);
+    color: var(--text-muted-solid);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    clip-path: polygon(0 0, 88% 0, 100% 100%, 0 100%);
+    margin-right: -8px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+  .tab span.name{ overflow:hidden; text-overflow: ellipsis; max-width: 100px; }
+  .tab.active{
+    background: var(--surface-raised);
+    color: var(--text);
+    z-index: 2;
+    border-color: var(--accent);
+  }
+  .tab .close{
+    background:none; border:none; color:inherit; font-size: 0.9rem;
+    line-height:1; cursor:pointer; opacity:0.6; padding: 0 2px;
+  }
+  .tab .close:hover{ opacity:1; color: var(--danger); }
+
+  /* Viewer */
+  .viewer-wrap{
+    flex: 1;
+    overflow: auto;
+    background: #0F0D0B;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 14px 0 90px;
+    touch-action: pan-y;
+  }
+  .viewer-wrap canvas{
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    background: white;
+    max-width: 100%;
+  }
+
+  .empty{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 0 32px;
+    color: var(--text-muted-solid);
+    gap: 14px;
+  }
+  .empty .icon{ font-size: 2.6rem; opacity: 0.5; }
+  .empty h2{ font-family: Georgia, serif; font-size: 1.1rem; color: var(--text); margin:0; }
+  .empty p{ font-size: 0.85rem; line-height:1.5; margin:0; max-width: 280px; }
+  .empty .add-btn{ margin-top: 6px; }
+
+  /* Bottom toolbar */
+  .toolbar{
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 720px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    gap: 10px;
+  }
+  .toolbar.hidden{ display:none; }
+  .toolbar button{
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    font-size: 1rem;
+    cursor:pointer;
+  }
+  .toolbar button:disabled{ opacity: 0.35; }
+  .toolbar button:focus-visible{ outline: 2px solid var(--accent-2); }
+  .pagegroup, .zoomgroup{ display:flex; align-items:center; gap: 8px; }
+  .pageinfo{
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted-solid);
+    min-width: 64px;
+    text-align:center;
+  }
+  .zoomlabel{
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted-solid);
+    min-width: 38px;
+    text-align:center;
+  }
+
+  .hint{
+    text-align:center;
+    font-size: 0.7rem;
+    color: var(--text-muted-solid);
+    padding: 6px 0 0;
+    opacity: 0.7;
+  }
+
+  input[type=file]{ display:none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>PDF Shelf<span class="count" id="countLabel"></span></h1>
+    </div>
+    <button class="add-btn" id="addBtnTop">＋ Add PDFs</button>
+  </header>
+
+  <div class="tabstrip" id="tabstrip"></div>
+
+  <div class="viewer-wrap" id="viewerWrap">
+    <div class="empty" id="emptyState">
+      <div class="icon">📂</div>
+      <h2>No PDFs open yet</h2>
+      <p>Pick your course outlines, schedules, or any PDFs from your phone — open as many as you want, side by side.</p>
+      <button class="add-btn" id="addBtnEmpty">＋ Add PDFs</button>
+    </div>
+  </div>
+
+  <div class="toolbar hidden" id="toolbar">
+    <div class="pagegroup">
+      <button id="prevBtn" aria-label="Previous page">‹</button>
+      <span class="pageinfo" id="pageInfo">– / –</span>
+      <button id="nextBtn" aria-label="Next page">›</button>
+    </div>
+    <div class="zoomgroup">
+      <button id="zoomOut" aria-label="Zoom out">−</button>
+      <span class="zoomlabel" id="zoomLabel">100%</span>
+      <button id="zoomIn" aria-label="Zoom in">+</button>
+    </div>
+  </div>
+  <div class="hint" id="swipeHint" style="display:none;">swipe left or right to flip pages</div>
+</div>
+
+<input type="file" id="fileInput" accept="application/pdf" multiple />
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const fileInput = document.getElementById('fileInput');
+const tabstrip = document.getElementById('tabstrip');
+const viewerWrap = document.getElementById('viewerWrap');
+const emptyState = document.getElementById('emptyState');
+const toolbar = document.getElementById('toolbar');
+const pageInfo = document.getElementById('pageInfo');
+const zoomLabel = document.getElementById('zoomLabel');
+const countLabel = document.getElementById('countLabel');
+const swipeHint = document.getElementById('swipeHint');
+
+let docs = [];       // { id, name, pdf, numPages, page, scale, canvas }
+let activeId = null;
+let seenFirstDoc = false;
+
+document.getElementById('addBtnTop').onclick = () => fileInput.click();
+document.getElementById('addBtnEmpty').onclick = () => fileInput.click();
+
+fileInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  for (const file of files){
+    await openFile(file);
+  }
+  fileInput.value = '';
+});
+
+async function openFile(file){
+  const id = 'd' + Date.now() + Math.random().toString(36).slice(2,7);
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const entry = { id, name: file.name.replace(/\.pdf$/i,''), pdf, numPages: pdf.numPages, page: 1, scale: 1.0 };
+    docs.push(entry);
+    renderTabs();
+    setActive(id);
+    if (!seenFirstDoc){ seenFirstDoc = true; swipeHint.style.display = 'block'; setTimeout(()=> swipeHint.style.display='none', 4000); }
+  }catch(err){
+    alert('Could not open "' + file.name + '". It may not be a valid PDF.');
+  }
+}
+
+function renderTabs(){
+  tabstrip.innerHTML = '';
+  docs.forEach(d => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (d.id === activeId ? ' active' : '');
+    tab.innerHTML = `<span class="name">${escapeHtml(d.name)}</span><button class="close" aria-label="Close">×</button>`;
+    tab.addEventListener('click', (ev) => {
+      if (ev.target.classList.contains('close')) return;
+      setActive(d.id);
+    });
+    tab.querySelector('.close').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      closeDoc(d.id);
+    });
+    tabstrip.appendChild(tab);
+  });
+  countLabel.textContent = docs.length ? ' · ' + docs.length + ' open' : '';
+}
+
+function closeDoc(id){
+  const idx = docs.findIndex(d => d.id === id);
+  if (idx === -1) return;
+  try{ docs[idx].pdf.destroy(); }catch(e){}
+  docs.splice(idx, 1);
+  if (activeId === id){
+    activeId = docs.length ? docs[Math.max(0, idx-1)].id : null;
+  }
+  renderTabs();
+  if (activeId){ renderPage(); } else { showEmpty(); }
+}
+
+function showEmpty(){
+  viewerWrap.innerHTML = '';
+  viewerWrap.appendChild(emptyState);
+  toolbar.classList.add('hidden');
+}
+
+async function setActive(id){
+  activeId = id;
+  renderTabs();
+  toolbar.classList.remove('hidden');
+  await renderPage();
+}
+
+function currentDoc(){ return docs.find(d => d.id === activeId); }
+
+async function renderPage(){
+  const entry = currentDoc();
+  if (!entry) return;
+  viewerWrap.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  viewerWrap.appendChild(canvas);
+
+  const page = await entry.pdf.getPage(entry.page);
+  const dpr = window.devicePixelRatio || 1;
+  const viewport = page.getViewport({ scale: entry.scale * 1.4 });
+  canvas.width = viewport.width * dpr;
+  canvas.height = viewport.height * dpr;
+  canvas.style.width = viewport.width + 'px';
+  canvas.style.height = viewport.height + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+
+  pageInfo.textContent = entry.page + ' / ' + entry.numPages;
+  zoomLabel.textContent = Math.round(entry.scale * 100) + '%';
+  document.getElementById('prevBtn').disabled = entry.page <= 1;
+  document.getElementById('nextBtn').disabled = entry.page >= entry.numPages;
+}
+
+document.getElementById('prevBtn').onclick = () => changePage(-1);
+document.getElementById('nextBtn').onclick = () => changePage(1);
+document.getElementById('zoomIn').onclick = () => changeZoom(0.15);
+document.getElementById('zoomOut').onclick = () => changeZoom(-0.15);
+
+function changePage(delta){
+  const entry = currentDoc();
+  if (!entry) return;
+  const next = entry.page + delta;
+  if (next < 1 || next > entry.numPages) return;
+  entry.page = next;
+  renderPage();
+}
+
+function changeZoom(delta){
+  const entry = currentDoc();
+  if (!entry) return;
+  entry.scale = Math.min(2.5, Math.max(0.5, +(entry.scale + delta).toFixed(2)));
+  renderPage();
+}
+
+// Swipe to flip pages
+let touchStartX = null;
+viewerWrap.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+viewerWrap.addEventListener('touchend', (e) => {
+  if (touchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60){
+    changePage(dx < 0 ? 1 : -1);
+  }
+  touchStartX = null;
+});
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
